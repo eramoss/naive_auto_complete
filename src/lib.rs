@@ -3,8 +3,8 @@ use std::{
     collections::{HashMap, VecDeque},
 };
 
-#[derive(Debug)]
-struct Token {
+#[derive(Debug, Clone)]
+pub struct Token {
     value: String,
     occurrences: u32,
     children: HashMap<String, Box<Token>>,
@@ -77,10 +77,39 @@ impl Context {
             }
         }
     }
+
+    pub fn find_possible_next(&mut self, mut tokens: VecDeque<String>) -> Token {
+        let mut current = &mut self.root;
+        tokens.pop_front(); // Remove root token
+        for token in tokens {
+            let next: &mut Token = current.children.get_mut(&token).unwrap_or_else(|| todo!());
+            current = next;
+        }
+        Self::major_occurrences(current.to_owned())
+    }
+    fn major_occurrences(token: Token) -> Token {
+        let empty_token = Token {
+            value: String::new(),
+            occurrences: 0,
+            children: HashMap::new(),
+        };
+        let mut major_occurrences = empty_token;
+        for (_, child) in token.children {
+            if child.occurrences > major_occurrences.occurrences {
+                major_occurrences = *child;
+            }
+        }
+        major_occurrences
+    }
 }
 
-#[macro_export]
-macro_rules! tokens_vec_deque {
+#[cfg(test)]
+mod tests {
+    use crate::Context;
+    use std::collections::VecDeque;
+
+    #[macro_export]
+    macro_rules! tokens_vec_deque {
     // Match an empty invocation
     () => {
         VecDeque::new()
@@ -94,4 +123,19 @@ macro_rules! tokens_vec_deque {
             temp_vecdeque
         }
     };
+}
+    #[test]
+    fn test_find_possible() {
+        let tokens = tokens_vec_deque!["rtx", "and", "asd", "qwe", "zxc"];
+        let tokens_to_add = tokens_vec_deque!["rtx", "and", "hgr", "qwe", "zxc", "asd"];
+        let more_added = tokens_vec_deque!["rtx", "jty", "hgr", "qwe", "zxc", "asd"];
+        let mut ctx = Context::create(tokens);
+        ctx.add(tokens_to_add);
+        ctx.add(more_added);
+
+        assert_eq!(
+            ctx.find_possible_next(tokens_vec_deque!["rtx"]).value,
+            "and".to_string()
+        );
+    }
 }
