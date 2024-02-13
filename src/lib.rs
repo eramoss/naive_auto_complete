@@ -11,8 +11,8 @@ pub struct Context {
 
 /// Contexts with same root token value is considered equal
 #[derive(Debug)]
-struct PoolContexts {
-    contexts: HashMap<String, Context>,
+pub struct PoolContexts {
+    pub contexts: HashMap<String, Context>,
 }
 impl PoolContexts {
     pub fn new() -> PoolContexts {
@@ -143,7 +143,7 @@ impl Default for &mut Box<Token> {
         Box::leak(Box::new(Box::new(token)))
     }
 }
-mod tokens {
+pub mod tokens {
     use std::collections::VecDeque;
 
     pub fn create_tokens(text: &str) -> VecDeque<String> {
@@ -155,15 +155,8 @@ mod tokens {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::tokens;
-    use crate::Context;
-    use crate::PoolContexts;
-    use std::collections::VecDeque;
-    use std::ops::Deref;
-    #[macro_export]
-    macro_rules! tokens_vec_deque {
+#[macro_export]
+macro_rules! tokens_vec_deque {
     // Match an empty invocation
     () => {
         VecDeque::new()
@@ -178,6 +171,15 @@ mod tests {
         }
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::tokens;
+    use crate::Context;
+    use crate::PoolContexts;
+    use std::collections::VecDeque;
+    use std::ops::Deref;
+    #[macro_export]
     #[test]
     fn create_contexts() {
         let text = "rtx and rtx asd rtx and qwe zxc rtx and qwe";
