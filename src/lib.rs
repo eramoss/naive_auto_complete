@@ -5,7 +5,7 @@ use std::{
 
 #[derive(Debug, Clone)]
 pub struct Context {
-    root: Token,
+    pub root: Token,
     depth: u32,
 }
 
@@ -24,7 +24,7 @@ impl PoolContexts {
         let mut pool = PoolContexts::new();
         assert!(tokens.len() > 0);
         loop {
-            let ctx = pool
+            let _ctx = pool
                 .contexts
                 .entry(tokens.front().unwrap().clone())
                 .and_modify(|c| {
@@ -98,11 +98,6 @@ impl Context {
     }
 
     pub fn find_possible_next(&mut self, mut tokens: VecDeque<String>) -> String {
-        let empty_token = &mut Box::new(Token {
-            value: String::new(),
-            occurrences: 0,
-            children: HashMap::new(),
-        });
         let mut current = &mut self.root;
         tokens.pop_front(); // Remove root token
         for token in tokens {
@@ -128,15 +123,15 @@ impl Context {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct Token {
-    value: String,
+pub struct Token {
+    pub value: String,
     occurrences: u32,
     children: HashMap<String, Box<Token>>,
 }
 impl Default for &mut Box<Token> {
     fn default() -> Self {
         let token = Token {
-            value: String::new(),
+            value: String::from("and"),
             occurrences: 0,
             children: HashMap::new(),
         };
@@ -148,10 +143,38 @@ pub mod tokens {
 
     pub fn create_tokens(text: &str) -> VecDeque<String> {
         let mut tokens = VecDeque::new();
-        for token in text.split_whitespace() {
+        for token in split_into_trigrams(text) {
             tokens.push_back(token.to_string());
         }
         tokens
+    }
+
+    pub fn split_into_trigrams(text: &str) -> Vec<String> {
+        let mut trigrams = Vec::new();
+
+        for i in 0..text.len() - 2 {
+            let trigram = &text[i..i + 3];
+            trigrams.push(trigram.to_string());
+        }
+
+        trigrams
+    }
+
+    pub fn merge_trigrams(trigrams: Vec<String>) -> String {
+        let mut merged_string = String::new();
+
+        // Iterate through trigrams, skipping the first two characters of each trigram
+        for i in 0..trigrams.len() {
+            let trigram = &trigrams[i];
+            if i == 0 {
+                merged_string.push_str(trigram.as_str());
+            } else {
+                // Append the third character of each trigram
+                merged_string.push(trigram.chars().nth(2).unwrap_or_default());
+            }
+        }
+
+        merged_string
     }
 }
 
@@ -178,8 +201,7 @@ mod tests {
     use crate::Context;
     use crate::PoolContexts;
     use std::collections::VecDeque;
-    use std::ops::Deref;
-    #[macro_export]
+
     #[test]
     fn create_contexts() {
         let text = "rtx and rtx asd rtx and qwe zxc rtx and qwe";

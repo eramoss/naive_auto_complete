@@ -1,34 +1,48 @@
-use std::{collections::VecDeque, io::Read, net::IpAddr};
+use std::collections::VecDeque;
 
-use naive_auto_complete::{tokens, tokens_vec_deque, Context, PoolContexts};
+use naive_auto_complete::{tokens, PoolContexts};
 
 fn main() {
     let text = include_str!("../assets/text.txt").to_lowercase();
     let tokens = tokens::create_tokens(text.as_str());
     let pool_ctx = PoolContexts::create_pool(tokens.clone());
 
-    // read input of user:
-    let mut input = String::new(); // Initialize the input variable
+    let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
     input.pop();
 
     input = get_the_last_50_chars(input);
-    let input: Vec<&str> = input.split_whitespace().collect();
+    let input = tokens::split_into_trigrams(input.as_str());
 
     let ctx = pool_ctx
         .contexts
-        .get(input.first().unwrap().to_string().as_str())
-        .unwrap();
+        .get(
+            input
+                .first()
+                .unwrap_or(&"and".to_string())
+                .to_string()
+                .as_str(),
+        )
+        .unwrap_or_else(|| pool_ctx.contexts.get("and").unwrap());
 
     let mut vec = VecDeque::new();
     for word in input {
         vec.push_back(word.to_string());
     }
-    for _ in 0..5 {
+    let mut result = VecDeque::new();
+    for _ in 0..15 {
         let next = ctx.clone().find_possible_next(vec.clone());
-        print!("{} ", next);
-        vec.push_back(next);
+        result.push_back(next.clone());
+        vec.push_back(next.to_string());
     }
+
+    if ctx.root.value == "and" {
+        result.push_front("and".to_string());
+    } else {
+        result.pop_front();
+        result.pop_front();
+    }
+    println!("{}", tokens::merge_trigrams(result.into()));
 }
 
 fn get_the_last_50_chars(s: String) -> String {
